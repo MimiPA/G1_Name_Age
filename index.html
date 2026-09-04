@@ -380,6 +380,7 @@
 
         let cachedVoices = [];
         let isAudioUnlocked = false;
+        let fallbackAudio = new Audio();
 
         function loadBrowserVoices() {
             if ('speechSynthesis' in window) {
@@ -408,6 +409,12 @@
                 window.speechSynthesis.speak(dummyUtterance);
             }
 
+            // Unlock HTML5 Audio element for mobile browser autoplay policy
+            fallbackAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+            fallbackAudio.play().then(() => {
+                fallbackAudio.pause();
+            }).catch(() => {});
+
             isAudioUnlocked = true;
         }
 
@@ -415,34 +422,57 @@
         window.addEventListener('click', unlockAudioOnFirstInteraction, { once: true });
 
         function playSpeech(text, lang = 'zh-CN') {
-            if (!('speechSynthesis' in window)) {
-                return;
+            if (!text) return;
+            unlockAudioOnFirstInteraction();
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
             }
 
-            unlockAudioOnFirstInteraction();
-            window.speechSynthesis.cancel();
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
-            utterance.volume = 1.0;
-            utterance.rate = 0.75;
-            utterance.pitch = 1.0;
-
-            if (cachedVoices.length === 0) {
+            if (cachedVoices.length === 0 && 'speechSynthesis' in window) {
                 cachedVoices = window.speechSynthesis.getVoices();
             }
 
+            // Check if device actually has a Mandarin / Chinese voice installed
+            let targetVoice = null;
             if (cachedVoices.length > 0) {
-                let targetVoice = cachedVoices.find(v => v.lang === lang) ||
-                                 cachedVoices.find(v => v.lang.startsWith('zh')) ||
-                                 cachedVoices.find(v => v.name.toLowerCase().includes('chinese') || v.name.toLowerCase().includes('mandarin'));
-                
-                if (targetVoice) {
+                targetVoice = cachedVoices.find(v => v.lang === 'zh-CN' || v.lang === 'zh_CN') ||
+                              cachedVoices.find(v => v.lang.startsWith('zh')) ||
+                              cachedVoices.find(v => v.name.toLowerCase().includes('chinese') || v.name.toLowerCase().includes('mandarin'));
+            }
+
+            // If device has native Chinese TTS voice installed, use Web Speech API
+            if (targetVoice && 'speechSynthesis' in window) {
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang;
                     utterance.voice = targetVoice;
+                    utterance.rate = 0.75;
+                    utterance.pitch = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                    return;
+                } catch (e) {
+                    console.log("SpeechSynthesis error, using online audio fallback", e);
                 }
             }
 
-            window.speechSynthesis.speak(utterance);
+            // Fallback for mobile phones without pre-installed Mandarin voice pack
+            playOnlineTTSFallback(text, lang);
+        }
+
+        function playOnlineTTSFallback(text, lang) {
+            try {
+                fallbackAudio.pause();
+                const targetLang = (lang === 'zh-CN' || lang.startsWith('zh')) ? 'zh-CN' : 'en';
+                // Public audio stream for Mandarin speech
+                const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${targetLang}&client=tw-ob`;
+                fallbackAudio.src = ttsUrl;
+                fallbackAudio.play().catch(err => {
+                    console.warn("Audio play error:", err);
+                });
+            } catch (err) {
+                console.error("Online TTS playback failed", err);
+            }
         }
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();

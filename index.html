@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1st Grade Mandarin Quiz Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0fdf4;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .chinese-font {
+            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        }
+        .btn-option {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-option:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .btn-option:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        @keyframes bounce-short {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-bounce-short {
+            animation: bounce-short 0.4s ease-in-out 2;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-3 md:p-6 bg-emerald-50">
+
+    <div class="max-w-xl w-full bg-white rounded-3xl shadow-xl border-4 border-emerald-300 p-5 md:p-8 text-center relative overflow-hidden min-h-[600px] flex flex-col justify-between">
+        
+        <!-- Header Bar -->
+        <header class="relative mb-4">
+            <button id="home-btn" onclick="showMenu()" class="hidden absolute left-0 top-0 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl border border-slate-300 text-sm flex items-center gap-1 transition-all">
+                🏠 Menu
+            </button>
+            <div class="inline-block bg-emerald-100 text-emerald-800 font-bold px-4 py-1 rounded-full text-xs md:text-sm border border-emerald-300">
+                🌱 1st Grade Mandarin Class
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700 tracking-wide mt-1">
+                Mandarin Learning Fun!
+            </h1>
+        </header>
+
+        <!-- 1. MAIN MENU VIEW -->
+        <div id="menu-view" class="flex-1 flex flex-col justify-center gap-3 my-auto">
+            <p class="text-gray-600 font-medium text-sm mb-2">Choose an activity to start learning:</p>
+            
+            <button onclick="startLearnMode()" class="bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold text-lg p-4 rounded-2xl border-b-4 border-amber-600 shadow-md flex items-center justify-between active:translate-y-0.5 transition-all">
+                <span class="flex items-center gap-3">
+                    <span class="text-2xl">📖</span>
+                    <span>1. Learn Vocabulary</span>
+                </span>
+                <span class="text-sm bg-amber-200/80 px-3 py-1 rounded-full border border-amber-400">6 Words</span>
+            </button>
+
+            <button onclick="startQuizMode()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg p-4 rounded-2xl border-b-4 border-emerald-700 shadow-md flex items-center justify-between active:translate-y-0.5 transition-all">
+                <span class="flex items-center gap-3">
+                    <span class="text-2xl">📝</span>
+                    <span>2. Quiz Game</span>
+                </span>
+                <span class="text-sm bg-emerald-700/50 px-3 py-1 rounded-full">15 Qs</span>
+            </button>
+
+            <button onclick="startMatchingMode()" class="bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-lg p-4 rounded-2xl border-b-4 border-sky-700 shadow-md flex items-center justify-between active:translate-y-0.5 transition-all">
+                <span class="flex items-center gap-3">
+                    <span class="text-2xl">🧩</span>
+                    <span>3. Matching Game</span>
+                </span>
+                <span class="text-sm bg-sky-700/50 px-3 py-1 rounded-full">Cards</span>
+            </button>
+
+            <button onclick="startDialogueMode()" class="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg p-4 rounded-2xl border-b-4 border-rose-700 shadow-md flex items-center justify-between active:translate-y-0.5 transition-all">
+                <span class="flex items-center gap-3">
+                    <span class="text-2xl">💬</span>
+                    <span>4. Dialogue & Sentences</span>
+                </span>
+                <span class="text-sm bg-rose-700/50 px-3 py-1 rounded-full">Practice</span>
+            </button>
+        </div>
+
+        <!-- 2. LEARN VOCABULARY VIEW -->
+        <div id="learn-view" class="hidden flex-1 flex flex-col justify-between">
+            <div class="flex justify-between items-center text-xs text-amber-800 font-bold mb-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                <span>Flashcard Study</span>
+                <span id="learn-tracker">Card 1 / 6</span>
+            </div>
+
+            <div class="bg-gradient-to-b from-amber-50 to-orange-50 border-3 border-amber-300 rounded-3xl p-6 my-auto shadow-sm relative">
+                <button onclick="playLearnSpeech()" class="absolute top-4 right-4 bg-amber-200 hover:bg-amber-300 text-amber-900 p-3 rounded-full shadow transition-all active:scale-95" title="Listen Pronunciation">
+                    🔊
+                </button>
+
+                <div id="learn-char" class="chinese-font text-7xl font-black text-amber-900 my-2">我</div>
+                <div id="learn-pinyin" class="text-xl font-bold text-amber-700 mb-1">wǒ</div>
+                <div id="learn-english" class="text-lg font-extrabold text-emerald-700 mb-4">I / Me</div>
+
+                <!-- Example sentence section with sound -->
+                <div class="bg-white/90 rounded-2xl p-3 border border-amber-200 flex items-center justify-between gap-2 text-left">
+                    <div>
+                        <div id="learn-example-cn" class="chinese-font font-bold text-base text-gray-800">我是学生。</div>
+                        <div id="learn-example-en" class="text-xs text-gray-500">I am a student.</div>
+                    </div>
+                    <button onclick="playExampleSpeech()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 p-2 rounded-xl text-xs font-bold border border-amber-300 flex items-center gap-1 shrink-0">
+                        🔊 Read
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-between gap-3 mt-4">
+                <button id="learn-prev-btn" onclick="prevLearnCard()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-2xl shadow active:scale-95 transition-all">
+                    ⬅️ Previous
+                </button>
+                <button id="learn-next-btn" onclick="nextLearnCard()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-2xl shadow border-b-4 border-emerald-700 active:scale-95 transition-all">
+                    Next ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. QUIZ GAME VIEW -->
+        <div id="quiz-view" class="hidden flex-1 flex flex-col justify-between">
+            <div class="flex items-center justify-between bg-emerald-50 rounded-2xl p-3 mb-3 border-2 border-emerald-200 text-sm">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xl">⭐</span>
+                    <span class="text-xs uppercase text-emerald-600 font-bold">Score:</span>
+                    <span id="score-text" class="text-xl font-black text-emerald-700">0</span>
+                </div>
+                <div>
+                    <span class="text-xs uppercase text-emerald-600 font-bold">Progress: </span>
+                    <span id="question-tracker" class="font-bold text-emerald-700">1 / 15</span>
+                </div>
+            </div>
+
+            <div id="quiz-card" class="bg-amber-50 border-3 border-amber-200 rounded-2xl p-4 mb-3 shadow-sm relative">
+                <button onclick="speakCurrentWord()" class="absolute top-2 right-2 bg-amber-200 hover:bg-amber-300 text-amber-800 p-2 rounded-full shadow transition-transform active:scale-95" title="Listen Sound">
+                    🔊
+                </button>
+                <span id="prompt-label" class="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-200/60 px-3 py-1 rounded-full">
+                    What is the meaning of:
+                </span>
+                <div id="target-word" class="chinese-font text-5xl font-black text-amber-900 my-2">我</div>
+                <div id="pinyin-text" class="text-amber-600 font-medium text-sm min-h-[20px]">(wǒ)</div>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3"></div>
+
+            <div id="feedback-message" class="min-h-[44px] flex items-center justify-center text-sm md:text-base font-bold mb-2 rounded-xl px-3 py-1.5 transition-all opacity-0"></div>
+
+            <div class="flex justify-center">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-base px-6 py-2.5 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-0.5 transition-all">
+                    Next Question ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. MATCHING GAME VIEW -->
+        <div id="matching-view" class="hidden flex-1 flex flex-col justify-between">
+            <div class="flex justify-between items-center text-xs text-sky-900 font-bold mb-2 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
+                <span>Match Mandarin to English</span>
+                <span id="match-left-text">6 / 6 Remaining</span>
+            </div>
+
+            <div class="space-y-4 my-auto">
+                <!-- Row 1: Mandarin Characters -->
+                <div>
+                    <div class="text-left text-xs font-bold text-amber-800 uppercase tracking-wider mb-1 px-1">Row 1: Mandarin Words</div>
+                    <div id="mandarin-grid" class="grid grid-cols-3 md:grid-cols-6 gap-2"></div>
+                </div>
+
+                <!-- Row 2: English Meanings -->
+                <div>
+                    <div class="text-left text-xs font-bold text-amber-800 uppercase tracking-wider mb-1 px-1">Row 2: English Cards</div>
+                    <div id="english-grid" class="grid grid-cols-3 md:grid-cols-6 gap-2"></div>
+                </div>
+            </div>
+
+            <div id="matching-feedback" class="text-xs md:text-sm font-bold text-sky-800 bg-sky-100 p-2 rounded-xl border border-sky-300 my-2">
+                Tap 1 Mandarin card (Row 1) and 1 English card (Row 2)!
+            </div>
+        </div>
+
+        <!-- 5. DIALOGUE AND SENTENCES VIEW -->
+        <div id="dialogue-view" class="hidden flex-1 flex flex-col justify-between">
+            <!-- Tabs -->
+            <div class="flex bg-rose-100 p-1 rounded-2xl mb-3 border border-rose-200">
+                <button id="tab-dialogue-btn" onclick="switchDialogueTab('interactive')" class="flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-rose-500 text-white shadow transition-all">
+                    💬 Interactive Dialogue
+                </button>
+                <button id="tab-puzzle-btn" onclick="switchDialogueTab('puzzle')" class="flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-white text-rose-700 hover:bg-rose-100 transition-all">
+                    🧩 Sentence Puzzle
+                </button>
+            </div>
+
+            <!-- Tab A: Interactive Dialogue -->
+            <div id="dialogue-interactive-sec" class="space-y-4 my-auto">
+                <!-- Name Dialogue Section -->
+                <div class="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-rose-800 uppercase">1. Name Dialogue</span>
+                        <button onclick="playSpeech('你叫什么名字？')" class="text-xs bg-rose-200 hover:bg-rose-300 text-rose-900 px-2.5 py-1 rounded-lg font-bold border border-rose-300">
+                            🔊 Ask Name
+                        </button>
+                    </div>
+                    <div class="text-lg font-black text-rose-900 chinese-font">你叫什么名字？</div>
+                    <div class="text-xs text-rose-600 mb-3">(Nǐ jiào shénme míngzi? — What is your name?)</div>
+
+                    <!-- Preset Names -->
+                    <div class="text-xs font-bold text-gray-600 mb-1">Pick a preset name:</div>
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        <button onclick="setNamePreset('小明', 'Xiǎomíng', 'Xiaoming')" class="bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold px-2.5 py-1 rounded-lg">小明</button>
+                        <button onclick="setNamePreset('巧虎', 'Qiǎohǔ', 'Qiaohu')" class="bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold px-2.5 py-1 rounded-lg">巧虎</button>
+                        <button onclick="setNamePreset('美美', 'Měimei', 'Meimei')" class="bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold px-2.5 py-1 rounded-lg">美美</button>
+                        <button onclick="setNamePreset('David', 'David', 'David')" class="bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold px-2.5 py-1 rounded-lg">David</button>
+                    </div>
+
+                    <!-- Custom Name Input -->
+                    <div class="flex gap-2 mb-3">
+                        <input id="custom-name-input" type="text" placeholder="Or type your English/Mandarin name..." class="flex-1 text-xs border border-rose-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-rose-400">
+                        <button onclick="setCustomName()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-xl">Set Name</button>
+                    </div>
+
+                    <!-- Response Box -->
+                    <div class="bg-white rounded-xl p-3 border border-rose-300 flex items-center justify-between">
+                        <div>
+                            <span class="chinese-font font-black text-xl text-rose-900">我叫<span id="display-user-name">小明</span>。</span>
+                            <div id="display-user-pinyin" class="text-xs text-rose-600">Wǒ jiào Xiǎomíng.</div>
+                            <div id="display-user-en" class="text-xs text-gray-500">My name is Xiaoming.</div>
+                        </div>
+                        <button onclick="speakMyNameAnswer()" class="bg-rose-500 hover:bg-rose-600 text-white p-2.5 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0">
+                            🔊 Speak Answer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Age Dialogue Section -->
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-amber-800 uppercase">2. Age Dialogue</span>
+                        <button onclick="playSpeech('你几岁？')" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-amber-300">
+                            🔊 Ask Age
+                        </button>
+                    </div>
+                    <div class="text-lg font-black text-amber-900 chinese-font">你几岁？</div>
+                    <div class="text-xs text-amber-600 mb-3">(Nǐ jǐ suì? — How old are you?)</div>
+
+                    <!-- Age picker -->
+                    <div class="text-xs font-bold text-gray-600 mb-1">Pick your age:</div>
+                    <div class="grid grid-cols-4 gap-1.5 mb-3">
+                        <button onclick="setAgePreset(5, '五', 'wǔ')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold py-1.5 rounded-lg text-center">5 岁 (五)</button>
+                        <button onclick="setAgePreset(6, '六', 'liù')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold py-1.5 rounded-lg text-center">6 岁 (六)</button>
+                        <button onclick="setAgePreset(7, '七', 'qī')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold py-1.5 rounded-lg text-center">7 岁 (七)</button>
+                        <button onclick="setAgePreset(8, '八', 'bā')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold py-1.5 rounded-lg text-center">8 岁 (八)</button>
+                    </div>
+
+                    <!-- Age Response Box -->
+                    <div class="bg-white rounded-xl p-3 border border-amber-300 flex items-center justify-between">
+                        <div>
+                            <span class="chinese-font font-black text-xl text-amber-900">我<span id="display-user-age-cn">六</span>岁。</span>
+                            <div id="display-user-age-pinyin" class="text-xs text-amber-600">Wǒ liù suì.</div>
+                            <div class="text-xs text-gray-500">I am <span id="display-user-age-en">6</span> years old.</div>
+                        </div>
+                        <button onclick="speakMyAgeAnswer()" class="bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0">
+                            🔊 Speak Answer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab B: Sentence Builder Puzzle -->
+            <div id="dialogue-puzzle-sec" class="hidden space-y-3 my-auto">
+                <div class="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4">
+                    <span class="text-xs font-bold text-rose-700 uppercase bg-rose-200/60 px-3 py-1 rounded-full">Target Sentence</span>
+                    <div id="puzzle-target-hint" class="chinese-font text-3xl font-black text-rose-900 my-2">你叫什么名字？</div>
+                    <div id="puzzle-target-meaning" class="text-xs text-rose-600">(What is your name?)</div>
+                </div>
+
+                <!-- Answer Slot Box -->
+                <div class="min-h-[64px] bg-white rounded-2xl border-2 border-dashed border-rose-300 p-2 flex flex-wrap items-center justify-center gap-2" id="puzzle-answer-box">
+                    <span id="puzzle-placeholder" class="text-gray-400 text-xs italic">Tap cards below to assemble sentence...</span>
+                </div>
+
+                <!-- Word Card Bank -->
+                <div class="bg-rose-100/50 rounded-2xl p-3 border border-rose-200 flex flex-wrap justify-center gap-2 min-h-[60px]" id="puzzle-bank-box"></div>
+
+                <div id="puzzle-feedback" class="min-h-[36px] flex items-center justify-center text-sm font-bold text-rose-800 bg-rose-50 rounded-xl px-3 py-1 opacity-0"></div>
+
+                <div class="flex justify-center gap-2">
+                    <button onclick="resetPuzzleSentence()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl">Clear 🔄</button>
+                    <button onclick="checkPuzzleSentence()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-5 py-2 rounded-xl shadow">Check ✨</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. END / COMPLETION MODAL SCREEN -->
+        <div id="end-screen" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6">
+            <div class="text-6xl mb-3 animate-bounce">🏆</div>
+            <h2 id="end-title" class="text-2xl md:text-3xl font-black text-emerald-800 mb-1">Great Job! 🎉</h2>
+            <p id="end-subtitle" class="text-gray-600 text-sm mb-4">You completed the challenge!</p>
+            
+            <div class="bg-emerald-100 rounded-2xl p-4 border-2 border-emerald-300 mb-6 text-center w-full max-w-xs">
+                <span class="text-gray-500 text-xs font-bold uppercase block">Result</span>
+                <span id="final-score" class="text-4xl font-black text-emerald-700">100 / 100</span>
+            </div>
+
+            <button id="end-replay-btn" onclick="replayCurrentMode()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-8 py-3 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-0.5 transition-all">
+                Play Again 🔄
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ================= JAVASCRIPT GAME LOGIC ================= -->
+    <script>
+        const vocabList = [
+            { id: 1, char: "我", pinyin: "wǒ", english: "I / Me", exCn: "我是学生。", exEn: "I am a student." },
+            { id: 2, char: "你", pinyin: "nǐ", english: "You", exCn: "你好！", exEn: "Hello!" },
+            { id: 3, char: "叫", pinyin: "jiào", english: "To be called", exCn: "你叫什么？", exEn: "What are you called?" },
+            { id: 4, char: "名字", pinyin: "míng zi", english: "Name", exCn: "你叫什么名字？", exEn: "What is your name?" },
+            { id: 5, char: "什么", pinyin: "shén me", english: "What", exCn: "这是什么？", exEn: "What is this?" },
+            { id: 6, char: "岁", pinyin: "suì", english: "Years old / Age", exCn: "我六岁。", exEn: "I am 6 years old." }
+        ];
+
+        const optionLabels = ["一", "二", "三", "四"];
+
+        let activeMode = 'menu';
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        let learnIndex = 0;
+
+        let selectedMandarinCard = null;
+        let selectedEnglishCard = null;
+        let matchedPairsCount = 0;
+
+        let currentUserName = "小明";
+        let currentUserNamePinyin = "Xiǎomíng";
+        let currentUserNameEn = "Xiaoming";
+
+        let currentUserAgeNum = 6;
+        let currentUserAgeCn = "六";
+        let currentUserAgePinyin = "liù";
+
+        let puzzleLevel = 0;
+        let currentPuzzleWords = [];
+        let assembledPuzzleWords = [];
+        const puzzleQuestions = [
+            {
+                target: "你叫什么名字？",
+                words: ["你", "叫", "什么", "名字", "？"],
+                meaning: "What is your name?"
+            },
+            {
+                target: "我叫小明。",
+                words: ["我", "叫", "小明", "。"],
+                meaning: "My name is Xiaoming."
+            },
+            {
+                target: "你几岁？",
+                words: ["你", "几", "岁", "？"],
+                meaning: "How old are you?"
+            },
+            {
+                target: "我六岁。",
+                words: ["我", "六", "岁", "。"],
+                meaning: "I am 6 years old."
+            }
+        ];
+
+        let cachedVoices = [];
+        let isAudioUnlocked = false;
+
+        function loadBrowserVoices() {
+            if ('speechSynthesis' in window) {
+                cachedVoices = window.speechSynthesis.getVoices();
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            loadBrowserVoices();
+            window.speechSynthesis.onvoiceschanged = function() {
+                loadBrowserVoices();
+            };
+        }
+
+        function unlockAudioOnFirstInteraction() {
+            if (isAudioUnlocked) return;
+            
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const dummyUtterance = new SpeechSynthesisUtterance('');
+                dummyUtterance.volume = 0;
+                window.speechSynthesis.speak(dummyUtterance);
+            }
+
+            isAudioUnlocked = true;
+        }
+
+        window.addEventListener('touchstart', unlockAudioOnFirstInteraction, { once: true });
+        window.addEventListener('click', unlockAudioOnFirstInteraction, { once: true });
+
+        function playSpeech(text, lang = 'zh-CN') {
+            if (!('speechSynthesis' in window)) {
+                return;
+            }
+
+            unlockAudioOnFirstInteraction();
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.volume = 1.0;
+            utterance.rate = 0.75;
+            utterance.pitch = 1.0;
+
+            if (cachedVoices.length === 0) {
+                cachedVoices = window.speechSynthesis.getVoices();
+            }
+
+            if (cachedVoices.length > 0) {
+                let targetVoice = cachedVoices.find(v => v.lang === lang) ||
+                                 cachedVoices.find(v => v.lang.startsWith('zh')) ||
+                                 cachedVoices.find(v => v.name.toLowerCase().includes('chinese') || v.name.toLowerCase().includes('mandarin'));
+                
+                if (targetVoice) {
+                    utterance.voice = targetVoice;
+                }
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSoundEffect(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        function hideAllViews() {
+            const viewIds = ['menu-view', 'learn-view', 'quiz-view', 'matching-view', 'dialogue-view', 'end-screen'];
+            viewIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+
+        function showMenu() {
+            hideAllViews();
+            activeMode = 'menu';
+            const menuEl = document.getElementById('menu-view');
+            if (menuEl) menuEl.classList.remove('hidden');
+            const homeBtn = document.getElementById('home-btn');
+            if (homeBtn) homeBtn.classList.add('hidden');
+        }
+
+        function startLearnMode() {
+            hideAllViews();
+            activeMode = 'learn';
+            document.getElementById('learn-view').classList.remove('hidden');
+            document.getElementById('home-btn').classList.remove('hidden');
+            learnIndex = 0;
+            renderLearnCard();
+        }
+
+        function renderLearnCard() {
+            const item = vocabList[learnIndex];
+            document.getElementById('learn-tracker').textContent = `Card ${learnIndex + 1} / ${vocabList.length}`;
+            document.getElementById('learn-char').textContent = item.char;
+            document.getElementById('learn-pinyin').textContent = item.pinyin;
+            document.getElementById('learn-english').textContent = item.english;
+            document.getElementById('learn-example-cn').textContent = item.exCn;
+            document.getElementById('learn-example-en').textContent = item.exEn;
+
+            document.getElementById('learn-prev-btn').disabled = (learnIndex === 0);
+            document.getElementById('learn-prev-btn').style.opacity = (learnIndex === 0) ? '0.5' : '1.0';
+
+            if (learnIndex === vocabList.length - 1) {
+                document.getElementById('learn-next-btn').textContent = "Finish 🎓";
+            } else {
+                document.getElementById('learn-next-btn').textContent = "Next ➡️";
+            }
+
+            playLearnSpeech();
+        }
+
+        function playLearnSpeech() {
+            const item = vocabList[learnIndex];
+            if (item) playSpeech(item.char);
+        }
+
+        function playExampleSpeech() {
+            const item = vocabList[learnIndex];
+            if (item) playSpeech(item.exCn);
+        }
+
+        function prevLearnCard() {
+            if (learnIndex > 0) {
+                learnIndex--;
+                renderLearnCard();
+            }
+        }
+
+        function nextLearnCard() {
+            if (learnIndex < vocabList.length - 1) {
+                learnIndex++;
+                renderLearnCard();
+            } else {
+                showEndScreen("Lesson Complete! 🌟", "You studied all vocabulary cards!", `${vocabList.length} / ${vocabList.length} Studied`, () => startLearnMode());
+            }
+        }
+
+        function startQuizMode() {
+            hideAllViews();
+            activeMode = 'quiz';
+            document.getElementById('quiz-view').classList.remove('hidden');
+            document.getElementById('home-btn').classList.remove('hidden');
+            resetQuiz();
+        }
+
+        function resetQuiz() {
+            score = 0;
+            currentIndex = 0;
+            document.getElementById('score-text').textContent = score;
+
+            currentQuestions = [];
+            const questionTypes = ['hanzi_to_en', 'hanzi_to_pinyin', 'en_to_hanzi', 'pinyin_to_hanzi'];
+            
+            for (let i = 0; i < 15; i++) {
+                const targetVocab = vocabList[i % vocabList.length];
+                const type = questionTypes[i % questionTypes.length];
+                currentQuestions.push({ vocab: targetVocab, type: type });
+            }
+            currentQuestions.sort(() => Math.random() - 0.5);
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            const q = currentQuestions[currentIndex];
+            const item = q.vocab;
+
+            document.getElementById('question-tracker').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+            document.getElementById('next-btn').classList.add('hidden');
+            
+            const feedbackEl = document.getElementById('feedback-message');
+            feedbackEl.className = "min-h-[44px] flex items-center justify-center text-sm md:text-base font-bold mb-2 rounded-xl px-3 py-1.5 transition-all opacity-0";
+            feedbackEl.textContent = "";
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            let correctText = '';
+            let options = [];
+
+            if (q.type === 'hanzi_to_en') {
+                document.getElementById('prompt-label').textContent = "What is the meaning of:";
+                document.getElementById('target-word').textContent = item.char;
+                document.getElementById('pinyin-text').textContent = `(${item.pinyin})`;
+
+                correctText = item.english;
+                const distractors = vocabList.filter(v => v.id !== item.id).sort(() => Math.random() - 0.5).slice(0, 3).map(v => v.english);
+                options = [...distractors, correctText].sort(() => Math.random() - 0.5);
+
+                options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn-option w-full bg-white text-gray-800 font-bold text-base p-3.5 rounded-2xl border-2 border-slate-200 shadow-sm text-left flex items-center justify-between hover:border-emerald-400`;
+                    btn.innerHTML = `
+                        <span class="flex items-center gap-3">
+                            <span class="chinese-font w-7 h-7 rounded-lg bg-slate-100 text-slate-600 font-black flex items-center justify-center text-sm border border-slate-300">${optionLabels[idx]}</span>
+                            <span>${optText}</span>
+                        </span>
+                        <span class="indicator font-black text-lg"></span>
+                    `;
+                    btn.onclick = () => handleAnswer(btn, optText, correctText, q);
+                    optionsContainer.appendChild(btn);
+                });
+
+            } else if (q.type === 'hanzi_to_pinyin') {
+                document.getElementById('prompt-label').textContent = "What is the Pinyin for:";
+                document.getElementById('target-word').textContent = item.char;
+                document.getElementById('pinyin-text').textContent = "";
+
+                correctText = item.pinyin;
+                const distractors = vocabList.filter(v => v.id !== item.id).sort(() => Math.random() - 0.5).slice(0, 3).map(v => v.pinyin);
+                options = [...distractors, correctText].sort(() => Math.random() - 0.5);
+
+                options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn-option w-full bg-white text-gray-800 font-bold text-base p-3.5 rounded-2xl border-2 border-slate-200 shadow-sm text-left flex items-center justify-between hover:border-emerald-400`;
+                    btn.innerHTML = `
+                        <span class="flex items-center gap-3">
+                            <span class="chinese-font w-7 h-7 rounded-lg bg-slate-100 text-slate-600 font-black flex items-center justify-center text-sm border border-slate-300">${optionLabels[idx]}</span>
+                            <span>${optText}</span>
+                        </span>
+                        <span class="indicator font-black text-lg"></span>
+                    `;
+                    btn.onclick = () => handleAnswer(btn, optText, correctText, q);
+                    optionsContainer.appendChild(btn);
+                });
+
+            } else {
+                if (q.type === 'en_to_hanzi') {
+                    document.getElementById('prompt-label').textContent = "Which Chinese character means:";
+                    document.getElementById('target-word').textContent = item.english;
+                    document.getElementById('pinyin-text').textContent = "";
+                } else {
+                    document.getElementById('prompt-label').textContent = "Which Chinese character has Pinyin:";
+                    document.getElementById('target-word').textContent = item.pinyin;
+                    document.getElementById('pinyin-text').textContent = "";
+                }
+
+                correctText = item.char;
+                const distractors = vocabList.filter(v => v.id !== item.id).sort(() => Math.random() - 0.5).slice(0, 3).map(v => v.char);
+                options = [...distractors, correctText].sort(() => Math.random() - 0.5);
+
+                options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn-option w-full bg-white text-gray-800 font-bold text-3xl p-4 rounded-2xl border-2 border-slate-200 shadow-sm text-center flex items-center justify-between hover:border-emerald-400`;
+                    btn.innerHTML = `
+                        <span class="chinese-font w-7 h-7 rounded-lg bg-slate-100 text-slate-600 font-black flex items-center justify-center text-sm border border-slate-300">${optionLabels[idx]}</span>
+                        <span class="chinese-font font-black">${optText}</span>
+                        <span class="indicator font-black text-lg"></span>
+                    `;
+                    btn.onclick = () => handleAnswer(btn, optText, correctText, q);
+                    optionsContainer.appendChild(btn);
+                });
+            }
+
+            playSpeech(item.char);
+        }
+
+        function handleAnswer(selectedBtn, selectedText, correctText, question) {
+            if (answered) return;
+            answered = true;
+
+            const allButtons = document.querySelectorAll('.btn-option');
+            const feedbackEl = document.getElementById('feedback-message');
+            const isCorrect = (selectedText === correctText);
+
+            if (isCorrect) {
+                selectedBtn.className = "btn-option w-full bg-emerald-500 text-white font-bold text-base p-3.5 rounded-2xl border-2 border-emerald-600 shadow-md flex items-center justify-between animate-bounce-short";
+                selectedBtn.querySelector('.indicator').textContent = "✓";
+                
+                playSoundEffect('correct');
+                score += 10;
+                document.getElementById('score-text').textContent = score;
+
+                feedbackEl.textContent = "🌟 Excellent! Correct!";
+                feedbackEl.className = "min-h-[44px] flex items-center justify-center text-sm md:text-base font-bold mb-2 rounded-xl px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 opacity-100";
+            } else {
+                selectedBtn.className = "btn-option w-full bg-red-500 text-white font-bold text-base p-3.5 rounded-2xl border-2 border-red-600 shadow-md flex items-center justify-between";
+                selectedBtn.querySelector('.indicator').textContent = "✗";
+
+                playSoundEffect('wrong');
+
+                allButtons.forEach(btn => {
+                    if (btn.textContent.includes(correctText)) {
+                        btn.className = "btn-option w-full bg-emerald-500 text-white font-bold text-base p-3.5 rounded-2xl border-2 border-emerald-600 shadow-md flex items-center justify-between";
+                        btn.querySelector('.indicator').textContent = "✓ (Correct)";
+                    }
+                });
+
+                feedbackEl.textContent = `❌ Incorrect! Answer: "${correctText}"`;
+                feedbackEl.className = "min-h-[44px] flex items-center justify-center text-sm md:text-base font-bold mb-2 rounded-xl px-3 py-1.5 bg-red-100 text-red-800 border border-red-300 opacity-100";
+            }
+
+            allButtons.forEach(btn => btn.disabled = true);
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function speakCurrentWord() {
+            const q = currentQuestions[currentIndex];
+            if (q) playSpeech(q.vocab.char);
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                showEndScreen("Quiz Finished! 🎓", "You completed all quiz questions!", `${score} / ${currentQuestions.length * 10} Points`, () => startQuizMode());
+            }
+        }
+
+        function startMatchingMode() {
+            hideAllViews();
+            activeMode = 'matching';
+            document.getElementById('matching-view').classList.remove('hidden');
+            document.getElementById('home-btn').classList.remove('hidden');
+            initMatchingGame();
+        }
+
+        function initMatchingGame() {
+            selectedMandarinCard = null;
+            selectedEnglishCard = null;
+            matchedPairsCount = 0;
+            document.getElementById('match-left-text').textContent = `${vocabList.length} / ${vocabList.length}`;
+            document.getElementById('matching-feedback').textContent = "Tap 1 Mandarin card (Row 1) and 1 English card (Row 2)!";
+
+            let mandarinCards = vocabList.map(item => ({ id: item.id, type: 'mandarin', char: item.char, pinyin: item.pinyin }));
+            let englishCards = vocabList.map(item => ({ id: item.id, type: 'english', text: item.english, char: item.char }));
+
+            mandarinCards.sort(() => Math.random() - 0.5);
+            englishCards.sort(() => Math.random() - 0.5);
+
+            const mandarinGrid = document.getElementById('mandarin-grid');
+            const englishGrid = document.getElementById('english-grid');
+            mandarinGrid.innerHTML = '';
+            englishGrid.innerHTML = '';
+
+            mandarinCards.forEach((card) => {
+                const cardEl = document.createElement('button');
+                cardEl.className = `h-20 w-full bg-white rounded-2xl border-2 border-amber-400 shadow-sm flex flex-col items-center justify-center p-1 text-center transition-all hover:scale-105 active:scale-95`;
+                cardEl.innerHTML = `
+                    <span class="chinese-font text-2xl font-black text-amber-900 leading-none">${card.char}</span>
+                    <span class="text-[10px] text-amber-600 font-bold mt-0.5">(${card.pinyin})</span>
+                `;
+                cardEl.onclick = () => handleMandarinCardClick(cardEl, card);
+                mandarinGrid.appendChild(cardEl);
+            });
+
+            englishCards.forEach((card) => {
+                const cardEl = document.createElement('button');
+                cardEl.className = `h-20 w-full bg-white rounded-2xl border-2 border-amber-400 shadow-sm flex items-center justify-center p-1 text-center transition-all hover:scale-105 active:scale-95`;
+                cardEl.innerHTML = `
+                    <span class="text-xs font-extrabold text-amber-900 leading-snug">${card.text}</span>
+                `;
+                cardEl.onclick = () => handleEnglishCardClick(cardEl, card);
+                englishGrid.appendChild(cardEl);
+            });
+        }
+
+        function handleMandarinCardClick(cardEl, cardData) {
+            if (cardEl.classList.contains('matched')) return;
+
+            if (selectedMandarinCard) {
+                selectedMandarinCard.element.classList.remove('ring-4', 'ring-amber-500', 'bg-amber-100');
+            }
+
+            selectedMandarinCard = { element: cardEl, data: cardData };
+            cardEl.classList.add('ring-4', 'ring-amber-500', 'bg-amber-100');
+            playSpeech(cardData.char);
+
+            checkMatch();
+        }
+
+        function handleEnglishCardClick(cardEl, cardData) {
+            if (cardEl.classList.contains('matched')) return;
+
+            if (selectedEnglishCard) {
+                selectedEnglishCard.element.classList.remove('ring-4', 'ring-amber-500', 'bg-amber-100');
+            }
+
+            selectedEnglishCard = { element: cardEl, data: cardData };
+            cardEl.classList.add('ring-4', 'ring-amber-500', 'bg-amber-100');
+
+            checkMatch();
+        }
+
+        function checkMatch() {
+            if (selectedMandarinCard && selectedEnglishCard) {
+                const mCard = selectedMandarinCard;
+                const eCard = selectedEnglishCard;
+
+                if (mCard.data.id === eCard.data.id) {
+                    playSoundEffect('correct');
+                    playSpeech(mCard.data.char);
+
+                    mCard.element.className = `h-20 w-full bg-emerald-500 text-white rounded-2xl border-2 border-emerald-600 shadow-md flex flex-col items-center justify-center p-1 text-center animate-bounce-short matched opacity-90`;
+                    eCard.element.className = `h-20 w-full bg-emerald-500 text-white rounded-2xl border-2 border-emerald-600 shadow-md flex items-center justify-center p-1 text-center animate-bounce-short matched opacity-90`;
+
+                    matchedPairsCount++;
+                    const remaining = vocabList.length - matchedPairsCount;
+                    document.getElementById('match-left-text').textContent = `${remaining} / ${vocabList.length}`;
+                    document.getElementById('matching-feedback').textContent = "✨ Great Match!";
+
+                    selectedMandarinCard = null;
+                    selectedEnglishCard = null;
+
+                    if (matchedPairsCount === vocabList.length) {
+                        setTimeout(() => {
+                            showEndScreen("Puzzle Solved! 🧩", "You matched all cards correctly!", `${vocabList.length} / ${vocabList.length} Matched`, () => startMatchingMode());
+                        }, 800);
+                    }
+                } else {
+                    playSoundEffect('wrong');
+                    document.getElementById('matching-feedback').textContent = "❌ Not a match, try again!";
+
+                    mCard.element.className = `h-20 w-full bg-red-100 rounded-2xl border-2 border-red-400 flex flex-col items-center justify-center p-1 text-center`;
+                    eCard.element.className = `h-20 w-full bg-red-100 rounded-2xl border-2 border-red-400 flex items-center justify-center p-1 text-center`;
+
+                    setTimeout(() => {
+                        mCard.element.className = `h-20 w-full bg-white rounded-2xl border-2 border-amber-400 shadow-sm flex flex-col items-center justify-center p-1 text-center hover:scale-105`;
+                        eCard.element.className = `h-20 w-full bg-white rounded-2xl border-2 border-amber-400 shadow-sm flex items-center justify-center p-1 text-center hover:scale-105`;
+                        selectedMandarinCard = null;
+                        selectedEnglishCard = null;
+                    }, 800);
+                }
+            }
+        }
+
+        function startDialogueMode() {
+            hideAllViews();
+            activeMode = 'dialogue';
+            document.getElementById('dialogue-view').classList.remove('hidden');
+            document.getElementById('home-btn').classList.remove('hidden');
+            switchDialogueTab('interactive');
+        }
+
+        function switchDialogueTab(tabName) {
+            const dialogueTabBtn = document.getElementById('tab-dialogue-btn');
+            const puzzleTabBtn = document.getElementById('tab-puzzle-btn');
+            const dialogueSec = document.getElementById('dialogue-interactive-sec');
+            const puzzleSec = document.getElementById('dialogue-puzzle-sec');
+
+            if (tabName === 'interactive') {
+                dialogueTabBtn.className = "flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-rose-500 text-white shadow transition-all";
+                puzzleTabBtn.className = "flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-white text-rose-700 hover:bg-rose-100 transition-all";
+                dialogueSec.classList.remove('hidden');
+                puzzleSec.classList.add('hidden');
+            } else {
+                puzzleTabBtn.className = "flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-rose-500 text-white shadow transition-all";
+                dialogueTabBtn.className = "flex-1 py-2 px-3 rounded-xl font-bold text-sm bg-white text-rose-700 hover:bg-rose-100 transition-all";
+                puzzleSec.classList.remove('hidden');
+                dialogueSec.classList.add('hidden');
+                puzzleLevel = 0;
+                initPuzzleLevel();
+            }
+        }
+
+        function setNamePreset(cnName, pinyinStr, englishName) {
+            currentUserName = cnName;
+            currentUserNamePinyin = pinyinStr;
+            currentUserNameEn = englishName;
+            updateNameDisplay();
+            speakMyNameAnswer();
+        }
+
+        function setCustomName() {
+            const val = document.getElementById('custom-name-input').value.trim();
+            if (val.length > 0) {
+                currentUserName = val;
+                currentUserNamePinyin = val;
+                currentUserNameEn = val;
+                updateNameDisplay();
+                speakMyNameAnswer();
+            }
+        }
+
+        function updateNameDisplay() {
+            document.getElementById('display-user-name').textContent = currentUserName;
+            document.getElementById('display-user-pinyin').textContent = `Wǒ jiào ${currentUserNamePinyin}.`;
+            document.getElementById('display-user-en').textContent = currentUserNameEn;
+        }
+
+        function speakMyNameAnswer() {
+            const isLatin = /[a-zA-Z]/.test(currentUserName);
+            if (isLatin) {
+                playSpeech("我叫", 'zh-CN');
+                setTimeout(() => {
+                    playSpeech(currentUserName, 'en-US');
+                }, 550);
+            } else {
+                playSpeech(`我叫${currentUserName}。`, 'zh-CN');
+            }
+        }
+
+        function setAgePreset(num, cnChar, pinyinStr) {
+            currentUserAgeNum = num;
+            currentUserAgeCn = cnChar;
+            currentUserAgePinyin = pinyinStr;
+            updateAgeDisplay();
+            speakMyAgeAnswer();
+        }
+
+        function updateAgeDisplay() {
+            document.getElementById('display-user-age-cn').textContent = currentUserAgeCn;
+            document.getElementById('display-user-age-pinyin').textContent = `Wǒ ${currentUserAgePinyin} suì.`;
+            document.getElementById('display-user-age-en').textContent = currentUserAgeNum;
+        }
+
+        function speakMyAgeAnswer() {
+            playSpeech(`我${currentUserAgeCn}岁。`);
+        }
+
+        function initPuzzleLevel() {
+            const p = puzzleQuestions[puzzleLevel];
+            document.getElementById('puzzle-target-hint').textContent = p.target;
+            document.getElementById('puzzle-target-meaning').textContent = p.meaning;
+
+            currentPuzzleWords = [...p.words].sort(() => Math.random() - 0.5);
+            assembledPuzzleWords = [];
+
+            const feedbackEl = document.getElementById('puzzle-feedback');
+            feedbackEl.className = "min-h-[36px] flex items-center justify-center text-sm font-bold text-rose-800 bg-rose-50 rounded-xl px-3 py-1 opacity-0";
+            feedbackEl.textContent = "";
+
+            renderPuzzleBank();
+            renderPuzzleAnswer();
+        }
+
+        function renderPuzzleBank() {
+            const bankBox = document.getElementById('puzzle-bank-box');
+            bankBox.innerHTML = '';
+
+            currentPuzzleWords.forEach((word, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `bg-white hover:bg-rose-50 text-rose-900 font-black chinese-font text-lg py-1.5 px-3 rounded-xl border-2 border-rose-300 shadow-sm transition-all hover:scale-105 active:scale-95`;
+                btn.textContent = word;
+                btn.onclick = () => handleBankCardClick(idx);
+                bankBox.appendChild(btn);
+            });
+        }
+
+        function renderPuzzleAnswer() {
+            const answerBox = document.getElementById('puzzle-answer-box');
+            answerBox.innerHTML = '';
+
+            if (assembledPuzzleWords.length === 0) {
+                answerBox.innerHTML = `<span id="puzzle-placeholder" class="text-gray-400 text-xs italic px-2">Tap cards below to assemble sentence...</span>`;
+                return;
+            }
+
+            assembledPuzzleWords.forEach((word, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `bg-rose-500 hover:bg-rose-600 text-white font-black chinese-font text-lg py-1.5 px-3 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1`;
+                btn.innerHTML = `<span>${word}</span> <span class="text-xs opacity-75">✕</span>`;
+                btn.onclick = () => handleAnswerCardClick(idx);
+                answerBox.appendChild(btn);
+            });
+        }
+
+        function handleBankCardClick(idx) {
+            const word = currentPuzzleWords.splice(idx, 1)[0];
+            assembledPuzzleWords.push(word);
+            playSpeech(word);
+            renderPuzzleBank();
+            renderPuzzleAnswer();
+        }
+
+        function handleAnswerCardClick(idx) {
+            const word = assembledPuzzleWords.splice(idx, 1)[0];
+            currentPuzzleWords.push(word);
+            renderPuzzleBank();
+            renderPuzzleAnswer();
+        }
+
+        function resetPuzzleSentence() {
+            initPuzzleLevel();
+        }
+
+        function checkPuzzleSentence() {
+            const target = puzzleQuestions[puzzleLevel].target;
+            const built = assembledPuzzleWords.join('');
+            const feedbackEl = document.getElementById('puzzle-feedback');
+
+            if (built === target) {
+                playSoundEffect('correct');
+                playSpeech(built);
+
+                feedbackEl.textContent = "✨ Great Job! Correct Sentence!";
+                feedbackEl.className = "min-h-[36px] flex items-center justify-center text-sm font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-xl px-3 py-1 opacity-100";
+
+                setTimeout(() => {
+                    puzzleLevel = (puzzleLevel + 1) % puzzleQuestions.length;
+                    initPuzzleLevel();
+                }, 1500);
+            } else {
+                playSoundEffect('wrong');
+                feedbackEl.textContent = "❌ Not quite right. Try clearing and rearranging!";
+                feedbackEl.className = "min-h-[36px] flex items-center justify-center text-sm font-bold text-red-800 bg-red-100 border border-red-300 rounded-xl px-3 py-1 opacity-100";
+            }
+        }
+
+        function showEndScreen(title, subtitle, scoreDisplay, replayFn) {
+            document.getElementById('end-title').textContent = title;
+            document.getElementById('end-subtitle').textContent = subtitle;
+            document.getElementById('final-score').textContent = scoreDisplay;
+            
+            const replayBtn = document.getElementById('end-replay-btn');
+            replayBtn.onclick = () => {
+                document.getElementById('end-screen').classList.add('hidden');
+                replayFn();
+            };
+
+            document.getElementById('end-screen').classList.remove('hidden');
+            playSoundEffect('correct');
+        }
+
+        function replayCurrentMode() {
+            if (activeMode === 'learn') startLearnMode();
+            else if (activeMode === 'quiz') startQuizMode();
+            else if (activeMode === 'matching') startMatchingMode();
+            else if (activeMode === 'dialogue') startDialogueMode();
+            else showMenu();
+        }
+
+        window.onload = function() {
+            showMenu();
+        };
+    </script>
+</body>
+</html>

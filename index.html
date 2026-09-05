@@ -319,6 +319,12 @@
 
     </div>
 
+    <!-- Audio Toast Notification for Mobile -->
+    <div id="audio-toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg hidden items-center space-x-2 z-50 transition-all">
+        <span class="animate-pulse">🔊</span>
+        <span id="audio-toast-text">Playing Mandarin audio...</span>
+    </div>
+
     <!-- ================= JAVASCRIPT GAME LOGIC ================= -->
     <script>
         const vocabList = [
@@ -330,15 +336,14 @@
             { id: 6, char: "岁", pinyin: "suì", english: "Years old / Age", exCn: "我六岁。", exEn: "I am 6 years old." }
         ];
 
-        const optionLabels = ["一", "二", "三", "四"];
-
+        // Global State Variables Initialization
         let activeMode = 'menu';
-        let currentQuestions = [];
-        let currentIndex = 0;
-        let score = 0;
-        let answered = false;
-
         let learnIndex = 0;
+        let score = 0;
+        let currentIndex = 0;
+        let answered = false;
+        let currentQuestions = [];
+        const optionLabels = ['A', 'B', 'C', 'D'];
 
         let selectedMandarinCard = null;
         let selectedEnglishCard = null;
@@ -355,154 +360,213 @@
         let puzzleLevel = 0;
         let currentPuzzleWords = [];
         let assembledPuzzleWords = [];
+
         const puzzleQuestions = [
-            {
-                target: "你叫什么名字？",
-                words: ["你", "叫", "什么", "名字", "？"],
-                meaning: "What is your name?"
-            },
-            {
-                target: "我叫小明。",
-                words: ["我", "叫", "小明", "。"],
-                meaning: "My name is Xiaoming."
-            },
-            {
-                target: "你几岁？",
-                words: ["你", "几", "岁", "？"],
-                meaning: "How old are you?"
-            },
-            {
-                target: "我六岁。",
-                words: ["我", "六", "岁", "。"],
-                meaning: "I am 6 years old."
-            }
+            { target: "你叫什么名字？", meaning: "What is your name?", words: ["你", "叫", "什么", "名字", "？"] },
+            { target: "我叫小明。", meaning: "My name is Xiaoming.", words: ["我", "叫", "小明", "。"] },
+            { target: "你几岁？", meaning: "How old are you?", words: ["你", "几", "岁", "？"] },
+            { target: "我六岁。", meaning: "I am 6 years old.", words: ["我", "六", "岁", "。"] }
         ];
 
-        let cachedVoices = [];
+        // Audio Toast helper for visual feedback
+        function showAudioToast(msg = "Playing audio...") {
+            const toast = document.getElementById('audio-toast');
+            const text = document.getElementById('audio-toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('hidden');
+                toast.classList.add('flex');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('flex');
+                }, 1800);
+            }
+        }
+
+        // Mobile Autoplay & Web Audio Context Unlock
         let isAudioUnlocked = false;
-        let fallbackAudio = new Audio();
+        let userAudioCtx = null;
+        let currentPlayingAudio = null;
 
-        function loadBrowserVoices() {
-            if ('speechSynthesis' in window) {
-                cachedVoices = window.speechSynthesis.getVoices();
-            }
-        }
-
-        if ('speechSynthesis' in window) {
-            loadBrowserVoices();
-            window.speechSynthesis.onvoiceschanged = function() {
-                loadBrowserVoices();
-            };
-        }
-
-        function unlockAudioOnFirstInteraction() {
+        function unlockMobileAudio() {
             if (isAudioUnlocked) return;
-            
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
 
+            // Unlock Web Audio Context for sound FX
+            try {
+                userAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (userAudioCtx.state === 'suspended') {
+                    userAudioCtx.resume();
+                }
+            } catch(e) {}
+
+            // Unlock SpeechSynthesis on iOS/Android Safari & Chrome
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
+                window.speechSynthesis.getVoices();
                 const dummyUtterance = new SpeechSynthesisUtterance('');
                 dummyUtterance.volume = 0;
                 window.speechSynthesis.speak(dummyUtterance);
             }
 
-            // Unlock HTML5 Audio element for mobile browser autoplay policy
-            fallbackAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
-            fallbackAudio.play().then(() => {
-                fallbackAudio.pause();
-            }).catch(() => {});
-
             isAudioUnlocked = true;
         }
 
-        window.addEventListener('touchstart', unlockAudioOnFirstInteraction, { once: true });
-        window.addEventListener('click', unlockAudioOnFirstInteraction, { once: true });
+        // Attach unlock listeners for first user touch or tap
+        window.addEventListener('click', unlockMobileAudio, { once: true });
+        window.addEventListener('touchstart', unlockMobileAudio, { once: true });
+        window.addEventListener('mousedown', unlockMobileAudio, { once: true });
 
-        function playSpeech(text, lang = 'zh-CN') {
-            if (!text) return;
-            unlockAudioOnFirstInteraction();
+        // Helper to strip punctuation marks
+        function cleanSpeechText(text) {
+            if (!text) return '';
+            return text.replace(/[。？！，,.!?]/g, '').trim();
+        }
 
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+        let activeAudio = null;
 
-            if (cachedVoices.length === 0 && 'speechSynthesis' in window) {
-                cachedVoices = window.speechSynthesis.getVoices();
-            }
-
-            // Check if device actually has a Mandarin / Chinese voice installed
-            let targetVoice = null;
-            if (cachedVoices.length > 0) {
-                targetVoice = cachedVoices.find(v => v.lang === 'zh-CN' || v.lang === 'zh_CN') ||
-                              cachedVoices.find(v => v.lang.startsWith('zh')) ||
-                              cachedVoices.find(v => v.name.toLowerCase().includes('chinese') || v.name.toLowerCase().includes('mandarin'));
-            }
-
-            // If device has native Chinese TTS voice installed, use Web Speech API
-            if (targetVoice && 'speechSynthesis' in window) {
+        function stopAllAudio() {
+            if (activeAudio) {
                 try {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = lang;
-                    utterance.voice = targetVoice;
-                    utterance.rate = 0.75;
-                    utterance.pitch = 1.0;
+                    activeAudio.pause();
+                    activeAudio.currentTime = 0;
+                    activeAudio.removeAttribute('src');
+                    activeAudio.load();
+                } catch(e) {}
+                activeAudio = null;
+            }
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                } catch(e) {}
+            }
+        }
+
+        // Helper to play multiple audio snippets sequentially
+        function playSpeechSequence(items) {
+            if (!items || items.length === 0) return;
+            let index = 0;
+            function playNext() {
+                if (index >= items.length) return;
+                const item = items[index];
+                index++;
+                playSpeech(item.text, item.lang || 'zh-CN', playNext);
+            }
+            playNext();
+        }
+
+        function playSpeech(text, lang = 'zh-CN', onEndCallback = null) {
+            const cleanedText = cleanSpeechText(text);
+            if (!cleanedText) {
+                if (onEndCallback) onEndCallback();
+                return;
+            }
+
+            unlockMobileAudio();
+            stopAllAudio();
+            showAudioToast(`🔊 ${cleanedText}`);
+
+            let hasEnded = false;
+            const done = () => {
+                if (!hasEnded) {
+                    hasEnded = true;
+                    activeAudio = null;
+                    if (onEndCallback) onEndCallback();
+                }
+            };
+
+            const isZh = lang.startsWith('zh');
+            const targetLang = isZh ? 'zh-CN' : 'en-US';
+
+            // 1. PRIMARY ENGINE: Web Speech Synthesis (Native, No overlap, No timer race)
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(cleanedText);
+                    utterance.lang = targetLang;
+                    utterance.rate = 0.85;
+                    utterance.volume = 1.0;
+
+                    const voices = window.speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        const targetVoice = voices.find(v => v.lang && (v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW') || v.lang.includes('cmn')));
+                        if (targetVoice && isZh) {
+                            utterance.voice = targetVoice;
+                        }
+                    }
+
+                    utterance.onend = () => done();
+                    utterance.onerror = () => playAudioFallback(cleanedText, isZh, targetLang, done);
+
                     window.speechSynthesis.speak(utterance);
                     return;
                 } catch (e) {
-                    console.log("SpeechSynthesis error, using online audio fallback", e);
+                    console.warn("Speech synthesis error, trying fallback...", e);
                 }
             }
 
-            // Fallback for mobile phones without pre-installed Mandarin voice pack
-            playOnlineTTSFallback(text, lang);
+            // 2. FALLBACK ENGINE: Direct Audio (Only triggers if WebSpeech is missing or errors out)
+            playAudioFallback(cleanedText, isZh, targetLang, done);
         }
 
-        function playOnlineTTSFallback(text, lang) {
-            try {
-                fallbackAudio.pause();
-                const targetLang = (lang === 'zh-CN' || lang.startsWith('zh')) ? 'zh-CN' : 'en';
-                // Public audio stream for Mandarin speech
-                const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${targetLang}&client=tw-ob`;
-                fallbackAudio.src = ttsUrl;
-                fallbackAudio.play().catch(err => {
-                    console.warn("Audio play error:", err);
-                });
-            } catch (err) {
-                console.error("Online TTS playback failed", err);
-            }
+        function playAudioFallback(text, isZh, targetLang, doneCallback) {
+            const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${targetLang}&client=tw-ob`;
+            const youdaoUrl = `https://dict.youdao.com/dictvoice?type=${isZh ? '1' : '2'}&le=${isZh ? 'zh' : 'en'}&audio=${encodeURIComponent(text)}`;
+
+            const audio = new Audio(googleTtsUrl);
+            activeAudio = audio;
+            audio.volume = 1.0;
+
+            audio.onended = () => doneCallback();
+
+            const tryYoudao = () => {
+                const audio2 = new Audio(youdaoUrl);
+                activeAudio = audio2;
+                audio2.volume = 1.0;
+                audio2.onended = () => doneCallback();
+                audio2.onerror = () => doneCallback();
+                audio2.play().catch(() => doneCallback());
+            };
+
+            audio.onerror = () => tryYoudao();
+            audio.play().catch(() => tryYoudao());
         }
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                window.speechSynthesis.getVoices();
+            };
+        }
 
         function playSoundEffect(type) {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                const audioCtx = userAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-            if (type === 'correct') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.1);
-                osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
-            } else if (type === 'wrong') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                } else if (type === 'wrong') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch (e) {
+                console.log("Audio FX error", e);
             }
         }
 
@@ -925,15 +989,8 @@
         }
 
         function speakMyNameAnswer() {
-            const isLatin = /[a-zA-Z]/.test(currentUserName);
-            if (isLatin) {
-                playSpeech("我叫", 'zh-CN');
-                setTimeout(() => {
-                    playSpeech(currentUserName, 'en-US');
-                }, 550);
-            } else {
-                playSpeech(`我叫${currentUserName}。`, 'zh-CN');
-            }
+            const name = (currentUserName || "小明").trim();
+            playSpeech(`我叫${name}`);
         }
 
         function setAgePreset(num, cnChar, pinyinStr) {
@@ -951,7 +1008,8 @@
         }
 
         function speakMyAgeAnswer() {
-            playSpeech(`我${currentUserAgeCn}岁。`);
+            const ageCn = currentUserAgeCn || "六";
+            playSpeech(`我${ageCn}岁`);
         }
 
         function initPuzzleLevel() {

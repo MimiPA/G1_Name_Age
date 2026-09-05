@@ -386,12 +386,12 @@
         // Mobile Autoplay & Web Audio Context Unlock
         let isAudioUnlocked = false;
         let userAudioCtx = null;
-        let currentPlayingAudio = null;
+        let activeAudio = null;
+        let currentUtterance = null; // Global reference prevents GC cleanup on Mobile Chrome/Safari
 
         function unlockMobileAudio() {
             if (isAudioUnlocked) return;
 
-            // Unlock Web Audio Context for sound FX
             try {
                 userAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (userAudioCtx.state === 'suspended') {
@@ -399,60 +399,45 @@
                 }
             } catch(e) {}
 
-            // Unlock SpeechSynthesis on iOS/Android Safari & Chrome
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-                const dummyUtterance = new SpeechSynthesisUtterance('');
-                dummyUtterance.volume = 0;
-                window.speechSynthesis.speak(dummyUtterance);
+                try {
+                    window.speechSynthesis.getVoices();
+                    const dummyUtterance = new SpeechSynthesisUtterance('');
+                    dummyUtterance.volume = 0;
+                    window.speechSynthesis.speak(dummyUtterance);
+                } catch(e) {}
             }
 
             isAudioUnlocked = true;
         }
 
-        // Attach unlock listeners for first user touch or tap
         window.addEventListener('click', unlockMobileAudio, { once: true });
         window.addEventListener('touchstart', unlockMobileAudio, { once: true });
         window.addEventListener('mousedown', unlockMobileAudio, { once: true });
 
-        // Helper to strip punctuation marks
         function cleanSpeechText(text) {
             if (!text) return '';
             return text.replace(/[。？！，,.!?]/g, '').trim();
         }
-
-        let activeAudio = null;
 
         function stopAllAudio() {
             if (activeAudio) {
                 try {
                     activeAudio.pause();
                     activeAudio.currentTime = 0;
-                    activeAudio.removeAttribute('src');
-                    activeAudio.load();
                 } catch(e) {}
                 activeAudio = null;
             }
             if ('speechSynthesis' in window) {
                 try {
-                    window.speechSynthesis.cancel();
+                    if (window.speechSynthesis.speaking) {
+                        window.speechSynthesis.cancel();
+                    }
                 } catch(e) {}
             }
         }
 
-        // Helper to play multiple audio snippets sequentially
-        function playSpeechSequence(items) {
-            if (!items || items.length === 0) return;
-            let index = 0;
-            function playNext() {
-                if (index >= items.length) return;
-                const item = items[index];
-                index++;
-                playSpeech(item.text, item.lang || 'zh-CN', playNext);
-            }
-            playNext();
-        }
-
+        // Multi-tier Mandarin Audio System (Mobile & HP Friendly)
         function playSpeech(text, lang = 'zh-CN', onEndCallback = null) {
             const cleanedText = cleanSpeechText(text);
             if (!cleanedText) {
@@ -464,70 +449,72 @@
             stopAllAudio();
             showAudioToast(`🔊 ${cleanedText}`);
 
-            let hasEnded = false;
-            const done = () => {
-                if (!hasEnded) {
-                    hasEnded = true;
-                    activeAudio = null;
-                    if (onEndCallback) onEndCallback();
-                }
-            };
-
             const isZh = lang.startsWith('zh');
             const targetLang = isZh ? 'zh-CN' : 'en-US';
 
-            // 1. PRIMARY ENGINE: Web Speech Synthesis (Native, No overlap, No timer race)
+            // TIER 1: Native Audio CDN MP3 (sangat lancar di HP Android & iOS)
+            try {
+                const youdaoUrl = `https://dict.youdao.com/dictvoice?le=${isZh ? 'zh' : 'en'}&audio=${encodeURIComponent(cleanedText)}`;
+                const audio = new Audio(youdaoUrl);
+                activeAudio = audio;
+                audio.volume = 1.0;
+
+                let played = false;
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        played = true;
+                        if (onEndCallback) {
+                            audio.onended = () => onEndCallback();
+                        }
+                    }).catch(err => {
+                        console.warn("CDN Audio blocked/unavailable, falling back to Web Speech:", err);
+                        speakWebSpeech(cleanedText, targetLang, onEndCallback);
+                    });
+                }
+
+                audio.onerror = () => {
+                    speakWebSpeech(cleanedText, targetLang, onEndCallback);
+                };
+            } catch (e) {
+                speakWebSpeech(cleanedText, targetLang, onEndCallback);
+            }
+        }
+
+        // TIER 2: Browser Local SpeechSynthesis Fallback
+        function speakWebSpeech(text, targetLang = 'zh-CN', onEndCallback = null) {
             if ('speechSynthesis' in window) {
                 try {
                     window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(cleanedText);
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    currentUtterance = utterance;
                     utterance.lang = targetLang;
                     utterance.rate = 0.85;
                     utterance.volume = 1.0;
 
                     const voices = window.speechSynthesis.getVoices();
-                    if (voices.length > 0) {
+                    if (voices && voices.length > 0) {
+                        const isZh = targetLang.startsWith('zh');
                         const targetVoice = voices.find(v => v.lang && (v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW') || v.lang.includes('cmn')));
                         if (targetVoice && isZh) {
                             utterance.voice = targetVoice;
                         }
                     }
 
-                    utterance.onend = () => done();
-                    utterance.onerror = () => playAudioFallback(cleanedText, isZh, targetLang, done);
+                    if (onEndCallback) {
+                        utterance.onend = () => onEndCallback();
+                        utterance.onerror = () => onEndCallback();
+                    }
 
                     window.speechSynthesis.speak(utterance);
-                    return;
                 } catch (e) {
-                    console.warn("Speech synthesis error, trying fallback...", e);
+                    console.error("SpeechSynthesis error:", e);
+                    if (onEndCallback) onEndCallback();
                 }
+            } else if (onEndCallback) {
+                onEndCallback();
             }
-
-            // 2. FALLBACK ENGINE: Direct Audio (Only triggers if WebSpeech is missing or errors out)
-            playAudioFallback(cleanedText, isZh, targetLang, done);
-        }
-
-        function playAudioFallback(text, isZh, targetLang, doneCallback) {
-            const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${targetLang}&client=tw-ob`;
-            const youdaoUrl = `https://dict.youdao.com/dictvoice?type=${isZh ? '1' : '2'}&le=${isZh ? 'zh' : 'en'}&audio=${encodeURIComponent(text)}`;
-
-            const audio = new Audio(googleTtsUrl);
-            activeAudio = audio;
-            audio.volume = 1.0;
-
-            audio.onended = () => doneCallback();
-
-            const tryYoudao = () => {
-                const audio2 = new Audio(youdaoUrl);
-                activeAudio = audio2;
-                audio2.volume = 1.0;
-                audio2.onended = () => doneCallback();
-                audio2.onerror = () => doneCallback();
-                audio2.play().catch(() => doneCallback());
-            };
-
-            audio.onerror = () => tryYoudao();
-            audio.play().catch(() => tryYoudao());
         }
 
         if ('speechSynthesis' in window) {
